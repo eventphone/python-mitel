@@ -1,5 +1,8 @@
 from threading import Thread,Event,Lock
 from time import sleep
+
+from events import Events
+
 from utils import *
 from messagehelper import *
 import socket
@@ -7,7 +10,7 @@ import ssl
 import Queue
 
 
-class OMMClient:
+class OMMClient(Events):
     tcp_socket = None
     ssl_socket = None
     send_q = None
@@ -15,6 +18,7 @@ class OMMClient:
     _worker = None
     _dispatcher = None
     _sequence = 0
+    _sequencelock = Lock()
     _terminate = False
     _events = {}
     _eventlock = Lock()
@@ -22,6 +26,8 @@ class OMMClient:
     _exponent = None
     _logged_in = False
     omm_status = {}
+    omm_versions = {}
+    __events__ = ('on_RFPState', 'on_HealthState', 'on_DECTSubscriptionMode', 'on_PPDevCnf')
 
     def __init__(self, host, port):
         self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -37,6 +43,19 @@ class OMMClient:
         self._dispatcher.daemon = True
         self._dispatcher.start()
 
+    def __getattr__(self, name):
+        #Check if new property and Named like Eventhandler
+        if not self.__dict__.has_key(name) and name in self.__events__:
+            omm_event=name.split("_")[1]
+            self.subscribe_event(omm_event)
+        return Events.__getattr__(self, name)
+
+    def _get_sequence(self):
+        with self._sequencelock:
+            sequence = self._sequence
+            self._sequence += 1
+        return sequence
+
     def _awaitresponse(self,message):
         if message in self._events:
             raise Exception("Alread waiting for "+message)
@@ -50,6 +69,14 @@ class OMMClient:
             self._events.pop(message)
         return data
 
+    def _sendrequest(self, message, messagedata={}, children=None):
+        msg = construct_message(message, messagedata, children)
+        self.send_q.put(msg)
+        responsemssage = message+"Resp"
+        if messagedata.has_key("seq"):
+            responsemssage += messagedata["seq"]
+        return self._awaitresponse(responsemssage)
+
     def login(self, user, password):
         messagedata = {
             "protocolVersion": "45",
@@ -57,30 +84,42 @@ class OMMClient:
             "password": password,
             "OMPClient": "1"
         }
-        msg = construct_single_message("Open", messagedata)
-        self.send_q.put(msg)
-        message, attributes, children = self._awaitresponse("OpenResp")
+        message, attributes, children = self._sendrequest("Open", messagedata)
         self._modulus = children["publicKey"]["modulus"]
         self._exponent = children["publicKey"]["exponent"]
         self.omm_status = attributes
+        self.omm_versions = self.get_versions()
         self._logged_in = True
 
     def _ensure_login(self):
         if not self._logged_in:
             raise Exception("OMMClient not logged in")
 
+    def subscribe_event(self, event):
+        self._ensure_login()
+        self._sendrequest("Subscribe", {}, {"e":{"cmd":"On", "eventType":event}})
+
     def get_sari(self):
         self._ensure_login()
-        msg = construct_single_message("GetSARI", {})
-        self.send_q.put(msg)
-        message, attributes, children =  self._awaitresponse("GetSARIResp")
+        message, attributes, children =  self._sendrequest("GetSARI")
         return attributes.get("sari")
+
+    def get_versions(self):
+        message, attributes, children = self._sendrequest("GetVersions")
+        return attributes
 
     def ping(self):
         self._ensure_login()
-        msg = construct_single_message("Ping", {})
-        self.send_q.put(msg)
-        self._awaitresponse("PingResp")
+        self._sendrequest("Ping", {})
+
+    def delete_device(self,id):
+        self._ensure_login()
+        self._sendrequest("DeletePPDev", {"ppn":str(id), "seq":str(self._get_sequence())})
+
+    def get_device_state(self,id):
+        self._ensure_login()
+        message, attributes, children = self._sendrequest("GetPPState", {"ppn": str(id), "seq": str(self._get_sequence())})
+        return attributes
 
     def _work(self):
         while not self._terminate:
@@ -88,10 +127,10 @@ class OMMClient:
                 item = self.send_q.get(block=False)
                 self.ssl_socket.send(item + chr(0))
                 self.send_q.task_done()
-            self.ssl_socket.settimeout(1.1)
+            self.ssl_socket.settimeout(0.1)
             data = None
             try:
-                data = self.ssl_socket.recv(4096)
+                data = self.ssl_socket.recv(16384)
             except ssl.SSLError, e:
                 if e.message == "The read operation timed out":
                     continue
@@ -104,6 +143,9 @@ class OMMClient:
             if not self.recv_q.empty():
                 item = self.recv_q.get(block=False)
                 message, attributes, children = parse_message(item)
+                if message == "EventDECTSubscriptionMode":
+                    self.on_DECTSubscriptionMode(message,attributes,children)
+                    continue
                 if attributes.has_key("seq"):
                     message += attributes["seq"]
                 with self._eventlock:
