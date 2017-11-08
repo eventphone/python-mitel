@@ -22,13 +22,14 @@ def parse_message(messagedata):
     return name, attributes, children
 
 
-def construct_message(name, attributes={}, children=None):
+def construct_message(name, attributes=None, children=None):
+    if attributes is None:
+        attributes = {}
     impl = getDOMImplementation()
     message = impl.createDocument(None, name, None)
     root_element = message.documentElement
     for key, val in attributes.items():
         root_element.setAttribute(key, val)
-    test = {"test":"test"}
     if children is not None:
         for key, val in children.items():
             new_child = message.createElement(key)

@@ -1,5 +1,4 @@
 from time import sleep
-
 from OMMClient import OMMClient,messagehelper
 from testconfig import *
 import os
