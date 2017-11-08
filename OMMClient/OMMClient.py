@@ -1,4 +1,4 @@
-from threading import Thread
+from threading import Thread,Event,Lock
 from time import sleep
 from utils import *
 from messagehelper import *
@@ -16,6 +16,11 @@ class OMMClient:
     _dispatcher = None
     _sequence = 0
     _terminate = False
+    _events = {}
+    _eventlock = Lock()
+    _modulus = None
+    _exponent = None
+    omm_status = {}
 
     def __init__(self, host, port):
         self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -31,6 +36,16 @@ class OMMClient:
         self._dispatcher.daemon = True
         self._dispatcher.start()
 
+    def _awaitresponse(self,message):
+        if message in self._events:
+            raise Exception("Alread waiting for "+message)
+        e = Event()
+        with self._eventlock:
+            self._events[message] = {}
+            self._events[message]["event"] = e
+        self._events[message]["event"].wait()
+        return self._events[message]["response"]
+
     def login(self, user, password):
         self._sequence += 1
         messagedata = {
@@ -41,6 +56,10 @@ class OMMClient:
         }
         msg = construct_single_message("Open", messagedata)
         self.send_q.put(msg)
+        message, attributes, children = parse_message(self._awaitresponse("OpenResp"))
+        self._modulus = children["publicKey"]["modulus"]
+        self._exponent = children["publicKey"]["exponent"]
+        self.omm_status = attributes
 
     def _work(self):
         while not self._terminate:
@@ -49,7 +68,7 @@ class OMMClient:
                 item = self.send_q.get(block=False)
                 self.ssl_socket.send(item + chr(0))
                 self.send_q.task_done()
-            self.ssl_socket.settimeout(0.1)
+            self.ssl_socket.settimeout(1.1)
             data = None
             try:
                 data = self.ssl_socket.recv(4096)
@@ -65,7 +84,11 @@ class OMMClient:
             sleep(0.1)
             if not self.recv_q.empty():
                 item = self.recv_q.get(block=False)
-                print(item)
+                message, attributes, children = parse_message(item)
+                with self._eventlock:
+                    if message in self._events:
+                            self._events[message]["response"] = item
+                            self._events[message]["event"].set()
 
     def logout(self):
         self._terminate = True
