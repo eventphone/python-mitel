@@ -20,6 +20,7 @@ class OMMClient:
     _eventlock = Lock()
     _modulus = None
     _exponent = None
+    _logged_in = False
     omm_status = {}
 
     def __init__(self, host, port):
@@ -44,10 +45,12 @@ class OMMClient:
             self._events[message] = {}
             self._events[message]["event"] = e
         self._events[message]["event"].wait()
-        return self._events[message]["response"]
+        data = parse_message(self._events[message]["response"])
+        with self._eventlock:
+            self._events.pop(message)
+        return data
 
     def login(self, user, password):
-        self._sequence += 1
         messagedata = {
             "protocolVersion": "45",
             "username": user,
@@ -56,14 +59,31 @@ class OMMClient:
         }
         msg = construct_single_message("Open", messagedata)
         self.send_q.put(msg)
-        message, attributes, children = parse_message(self._awaitresponse("OpenResp"))
+        message, attributes, children = self._awaitresponse("OpenResp")
         self._modulus = children["publicKey"]["modulus"]
         self._exponent = children["publicKey"]["exponent"]
         self.omm_status = attributes
+        self._logged_in = True
+
+    def _ensure_login(self):
+        if not self._logged_in:
+            raise Exception("OMMClient not logged in")
+
+    def get_sari(self):
+        self._ensure_login()
+        msg = construct_single_message("GetSARI", {})
+        self.send_q.put(msg)
+        message, attributes, children =  self._awaitresponse("GetSARIResp")
+        return attributes.get("sari")
+
+    def ping(self):
+        self._ensure_login()
+        msg = construct_single_message("Ping", {})
+        self.send_q.put(msg)
+        self._awaitresponse("PingResp")
 
     def _work(self):
         while not self._terminate:
-            print("_work loop")
             if not self.send_q.empty():
                 item = self.send_q.get(block=False)
                 self.ssl_socket.send(item + chr(0))
@@ -80,17 +100,19 @@ class OMMClient:
 
     def _dispatch(self):
         while not self._terminate:
-            print("_dispatch loop")
             sleep(0.1)
             if not self.recv_q.empty():
                 item = self.recv_q.get(block=False)
                 message, attributes, children = parse_message(item)
+                if attributes.has_key("seq"):
+                    message += attributes["seq"]
                 with self._eventlock:
                     if message in self._events:
                             self._events[message]["response"] = item
                             self._events[message]["event"].set()
 
     def logout(self):
+        self._logged_in = False
         self._terminate = True
         self._worker.join()
         self._dispatcher.join()
