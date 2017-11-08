@@ -73,7 +73,7 @@ class OMMClient(Events):
         msg = construct_message(message, messagedata, children)
         self.send_q.put(msg)
         responsemssage = message+"Resp"
-        if "seq" in messagedata:
+        if messagedata is not None and "seq" in messagedata:
             responsemssage += messagedata["seq"]
         return self._awaitresponse(responsemssage)
 
