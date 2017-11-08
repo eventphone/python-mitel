@@ -1,8 +1,6 @@
-from threading import Thread,Event,Lock
+from threading import Thread, Event, Lock
 from time import sleep
-
 from events import Events
-
 from utils import *
 from messagehelper import *
 import socket
@@ -44,9 +42,11 @@ class OMMClient(Events):
         self._dispatcher.start()
 
     def __getattr__(self, name):
-        #Check if new property and Named like Eventhandler
-        if not self.__dict__.has_key(name) and name in self.__events__:
-            omm_event=name.split("_")[1]
+        #
+        # Check if new property and Named like Eventhandler
+        #
+        if name not in self.__dict__ and name in self.__events__:
+            omm_event = name.split("_")[1]
             self.subscribe_event(omm_event)
         return Events.__getattr__(self, name)
 
@@ -56,7 +56,7 @@ class OMMClient(Events):
             self._sequence += 1
         return sequence
 
-    def _awaitresponse(self,message):
+    def _awaitresponse(self, message):
         if message in self._events:
             raise Exception("Alread waiting for "+message)
         e = Event()
@@ -69,11 +69,11 @@ class OMMClient(Events):
             self._events.pop(message)
         return data
 
-    def _sendrequest(self, message, messagedata={}, children=None):
+    def _sendrequest(self, message, messagedata=None, children=None):
         msg = construct_message(message, messagedata, children)
         self.send_q.put(msg)
         responsemssage = message+"Resp"
-        if messagedata.has_key("seq"):
+        if "seq" in messagedata:
             responsemssage += messagedata["seq"]
         return self._awaitresponse(responsemssage)
 
@@ -97,11 +97,11 @@ class OMMClient(Events):
 
     def subscribe_event(self, event):
         self._ensure_login()
-        self._sendrequest("Subscribe", {}, {"e":{"cmd":"On", "eventType":event}})
+        self._sendrequest("Subscribe", {}, {"e": {"cmd": "On", "eventType": event}})
 
     def get_sari(self):
         self._ensure_login()
-        message, attributes, children =  self._sendrequest("GetSARI")
+        message, attributes, children = self._sendrequest("GetSARI")
         return attributes.get("sari")
 
     def get_versions(self):
@@ -112,13 +112,14 @@ class OMMClient(Events):
         self._ensure_login()
         self._sendrequest("Ping", {})
 
-    def delete_device(self,id):
+    def delete_device(self, ppid):
         self._ensure_login()
-        self._sendrequest("DeletePPDev", {"ppn":str(id), "seq":str(self._get_sequence())})
+        self._sendrequest("DeletePPDev", {"ppn": str(ppid), "seq": str(self._get_sequence())})
 
-    def get_device_state(self,id):
+    def get_device_state(self, ppid):
         self._ensure_login()
-        message, attributes, children = self._sendrequest("GetPPState", {"ppn": str(id), "seq": str(self._get_sequence())})
+        message, attributes, children = self._sendrequest("GetPPState",
+                                                          {"ppn": str(ppid), "seq": str(self._get_sequence())})
         return attributes
 
     def _work(self):
@@ -144,9 +145,9 @@ class OMMClient(Events):
                 item = self.recv_q.get(block=False)
                 message, attributes, children = parse_message(item)
                 if message == "EventDECTSubscriptionMode":
-                    self.on_DECTSubscriptionMode(message,attributes,children)
+                    self.on_DECTSubscriptionMode(message, attributes, children)
                     continue
-                if attributes.has_key("seq"):
+                if "seq" in attributes:
                     message += attributes["seq"]
                 with self._eventlock:
                     if message in self._events:
