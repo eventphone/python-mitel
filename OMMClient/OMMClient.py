@@ -99,27 +99,45 @@ class OMMClient(Events):
         if not self._logged_in:
             raise Exception("OMMClient not logged in")
 
+    # Subscribes to any event specified
     def subscribe_event(self, event):
         self._ensure_login()
         self._sendrequest("Subscribe", {}, {"e": {"cmd": "On", "eventType": event}})
 
+    # Fetches the configured SARI
     def get_sari(self):
         self._ensure_login()
         message, attributes, children = self._sendrequest("GetSARI")
         return attributes.get("sari")
 
+    # Fetches the OMM system name
+    def get_systemname(self):
+        self._ensure_login()
+        message, attributes, children = self._sendrequest("GetSystemName")
+        return attributes.get("name")
+
+    # Fetches maximum Numbers for RFPs, users ect. Returns a dictionary
+    def get_limits(self):
+        self._ensure_login()
+        message, attributes, children = self._sendrequest("Limits")
+        return attributes
+
+    # Fetches the OMM supported protocol versions for all calls. Returns a dictionary
     def get_versions(self):
         message, attributes, children = self._sendrequest("GetVersions")
         return attributes
 
+    # Pings OMM and awaits response
     def ping(self):
         self._ensure_login()
         self._sendrequest("Ping", {})
 
+    # Deletes a configured PP
     def delete_device(self, ppid):
         self._ensure_login()
         self._sendrequest("DeletePPDev", {"ppn": str(ppid), "seq": str(self._get_sequence())})
 
+    # Fetches the current state of a PP
     def get_device_state(self, ppid):
         self._ensure_login()
         message, attributes, children = self._sendrequest("GetPPState",
