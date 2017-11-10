@@ -29,12 +29,12 @@ def construct_message(name, attributes=None, children=None):
     message = impl.createDocument(None, name, None)
     root_element = message.documentElement
     for key, val in attributes.items():
-        root_element.setAttribute(key, val)
+        root_element.setAttribute(str(key), str(val))
     if children is not None:
         for key, val in children.items():
             new_child = message.createElement(key)
             if val is not None:
                 for attr_key, attr_val in val.items():
-                    new_child.setAttribute(attr_key, attr_val)
+                    new_child.setAttribute(str(attr_key), str(attr_val))
             root_element.appendChild(new_child)
     return root_element.toxml()
