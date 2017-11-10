@@ -48,7 +48,7 @@ inside the OMM.
 The following example logs into OMM and executes some operations.
 It also handles the event of a subscription mode change.
 
-```
+```python
 # Implement Event Handler for subcription mode change
 def SubscriptionHandler(message, attributes, children):
     print("Subscription Mode changed!")
