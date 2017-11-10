@@ -28,7 +28,7 @@ inside the OMM.
 - Synchronisation of user profiles from external data source
 
 ## Implemented Features:
-### System-Wide features
+### System-Wide
 - Subscribe to defined OMM-Events
 - Send a PING request to OMM
 - Get System Name
@@ -37,7 +37,7 @@ inside the OMM.
 - Get Protocol Versions per OMM-call
 - Set DECT Subscription-Mode
 
-### Use Profile
+### Users (User Profiles)
 - Reset User-PIN
 
 ### Devices (Protable Parts)
