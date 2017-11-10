@@ -43,3 +43,41 @@ inside the OMM.
 ### Devices (Protable Parts)
 - Delete Device (PP)
 - Get Device State
+
+# Usage example:
+The following example logs into OMM and executes some operations.
+It also handles the event of a subscription mode change.
+
+```
+# Implement Event Handler for subcription mode change
+def SubscriptionHandler(message, attributes, children):
+    print("Subscription Mode changed!")
+    print("New mode: "+attributes["mode"])
+
+# Login to OMM
+test = OMMClient.OMMClient("<omm host>", 12622)
+test.login("omm", "<super secure password>")
+
+# Attach Event Handler
+test.on_DECTSubscriptionMode += SubscriptionHandler
+
+# Get some Basic Infos
+print("SARI: "+test.get_sari())
+print("OMM: "+test.get_systemname())
+print(test.get_limits())
+
+# Disable DECT registration
+print(test.set_subscription("Off"))
+
+# Reset the PIN of User number 55 to 1234
+print(test.set_user_pin(55,"1234"))
+
+# Ping OMM 5 times
+while i<5:
+    i +=1
+    sleep(0.5)
+    test.ping()
+
+#Close OMM connection
+test.logout()
+```
