@@ -127,6 +127,39 @@ class OMMClient(Events):
         message, attributes, children = self._sendrequest("GetVersions")
         return attributes
 
+    # Set DECT Subscription Mode (Modes are: off, configured, wildcard)
+    def set_subscription(self, mode, timeout=None):
+        modes = {
+            "OFF" : "Off",
+            "WILDCARD" : "Wildcard",
+            "CONFIGURED" : "Configured"
+        }
+        if mode is None or mode.upper() not in modes:
+            return False
+        messagedata = {
+            "mode": modes[mode.upper()],
+        }
+        if mode is "Wildcard" and timeout is not None:
+            return False
+        else:
+            messagedata["timeout"] = timeout
+        message, attributes, children = self._sendrequest("SetDECTSubscriptionMode", messagedata)
+        return True
+
+    def set_user_pin(self, uid, pin):
+        messagedata = {
+            "user":{
+                "uid":uid,
+                "pin":encrypt_pin(pin, self._modulus,self._exponent)
+            }
+        }
+        message, attributes, children = self._sendrequest("SetPPUser",{"seq": str(self._get_sequence())}, messagedata)
+        if len(children) > 0 and children["user"] is not None:
+            return True
+        else:
+            return False
+
+
     # Pings OMM and awaits response
     def ping(self):
         self._ensure_login()

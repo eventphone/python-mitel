@@ -20,7 +20,8 @@ test.on_PPDevCnf += HandsetHandler
 print("SARI: "+test.get_sari())
 print("OMM: "+test.get_systemname())
 print(test.get_limits())
-print(test.create_device("119420847334*",auth_code=""))
+print(test.set_subscription("Off"))
+print(test.set_user_pin(55,"1234"))
 test.get_device_state(12)
 i=0
 while i<120:
