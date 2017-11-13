@@ -18,8 +18,8 @@ inside the OMM.
 - Handle subscription mode change ✅
 - Create new user profiles
 - Create new devices (PPs) using known IPEI/IPUI
-- Attach existing profiles to devices
-- Detach a user profile from a device
+- Attach existing profiles to devices ✅
+- Detach a user profile from a device ✅
 - Reset a user's PIN to move a dynamic profile ✅
 
 ## Use cases:
@@ -36,15 +36,22 @@ inside the OMM.
 - Get System Limits (Maximum Values)
 - Get Protocol Versions per OMM-call
 - Set DECT Subscription-Mode
+- Get OMM User Account by ID
+- Login Default and Login as OMM-Sync
 
 ### Users (User Profiles)
+- Get User by ID
 - Reset User-PIN
+- Attach User to Device
+- Detach User from Device
+- Convert User-Device Relation to Fixed
+- Convert User-Device Relation to Dynamic
 
 ### Devices (Protable Parts)
 - Delete Device (PP)
 - Get Device State
 
-# Usage example:
+## Usage example:
 The following example logs into OMM and executes some operations.
 It also handles the event of a subscription mode change.
 

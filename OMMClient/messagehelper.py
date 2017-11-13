@@ -12,7 +12,9 @@ def parse_message(messagedata):
         item = root.attributes.item(i)
         attributes[item.name] = item.value
     child = root.firstChild
-    while child is not None:
+    child_num = 0
+    while child is not None and child_num < 5000:
+        child_num +=1
         childname = child.tagName
         children[childname] = {}
         for i in range(0, child.attributes.length):

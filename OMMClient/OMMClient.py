@@ -8,7 +8,10 @@ import ssl
 import Queue
 
 
+# noinspection PyMissingConstructor
 class OMMClient(Events):
+    """
+    """
     _host = None
     _port = None
     _tcp_socket = None
@@ -29,7 +32,13 @@ class OMMClient(Events):
     omm_versions = {}
     __events__ = ('on_RFPState', 'on_HealthState', 'on_DECTSubscriptionMode', 'on_PPDevCnf')
 
-    def __init__(self, host, port):
+    def __init__(self, host, port=12622):
+        """ Initializes a new OMM Client using destination address and port
+
+        Args:
+            host (str): address of the server running OMM
+            port (int): port the OMM service is listening
+        """
         self._host = host
         self._port = port
         self._tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -43,9 +52,14 @@ class OMMClient(Events):
         self._dispatcher.daemon = True
 
     def __getattr__(self, name):
-        #
-        # Check if new property and Named like Eventhandler
-        #
+        """ Check if new property and Named like Eventhandler
+
+        Args:
+            name:
+
+        Returns:
+
+        """
         if name not in self.__dict__ and name in self.__events__:
             omm_event = name.split("_")[1]
             self.subscribe_event(omm_event)
@@ -59,7 +73,7 @@ class OMMClient(Events):
 
     def _awaitresponse(self, message):
         if message in self._events:
-            raise Exception("Alread waiting for "+message)
+            raise Exception("Already waiting for "+message)
         e = Event()
         with self._eventlock:
             self._events[message] = {}
@@ -71,20 +85,53 @@ class OMMClient(Events):
         return data
 
     def _sendrequest(self, message, messagedata=None, children=None):
+        """
+
+        Args:
+            message:
+            messagedata:
+            children:
+
+        Returns:
+
+        """
         msg = construct_message(message, messagedata, children)
         self._send_q.put(msg)
         responsemssage = message+"Resp"
         if messagedata is not None and "seq" in messagedata:
-            responsemssage += messagedata["seq"]
+            responsemssage += str(messagedata["seq"])
         return self._awaitresponse(responsemssage)
 
-    def login(self, user, password):
+    def login(self, user, password, ommsync=False):
+        """ login to OMM with given credentials
+
+        Method used to login before executing any command except get_versions
+        against the OMM. The login can be performed in two modes to support
+        different sets of features. The normal OMPClient login is restricted
+        to all operations which can be performed using the OMP client application.
+        Using the OMM sync flag you will be able to perform further operations.
+        These operations are:
+
+            * Attach user profile to device (Login)
+            * Detach user profile from device (Logout)
+            * Write extended device information (read only in OMP)
+
+        .. note:: Some operations in OMM-Sync mode might lead to destroy DECT paring.
+
+        Args:
+            user (str): Username to be used to login
+            password (str): Password to be used to login
+            ommsync (bool): If True login as OMM-Sync client
+        """
         messagedata = {
             "protocolVersion": "45",
             "username": user,
-            "password": password,
-            "OMPClient": "1"
+            "password": password
         }
+        if ommsync is True:
+            messagedata["UserDeviceSyncClient"] = "true"
+        else:
+            messagedata["OMPClient"] = "1"
         self._ssl_socket.connect((self._host, self._port))
         self._worker.start()
         self._dispatcher.start()
@@ -99,40 +146,86 @@ class OMMClient(Events):
         if not self._logged_in:
             raise Exception("OMMClient not logged in")
 
-    # Subscribes to any event specified
+    def get_account(self, uid):
+        """ Get System Account
+
+        Args:
+            uid:
+        """
+        self._ensure_login()
+        message, attributes, children = self._sendrequest("GetAccount", {"id": uid})
+        return attributes
+
     def subscribe_event(self, event):
+        """ Subscribes to any event specified
+
+        Args:
+            event:
+        """
         self._ensure_login()
         self._sendrequest("Subscribe", {}, {"e": {"cmd": "On", "eventType": event}})
 
-    # Fetches the configured SARI
     def get_sari(self):
+        """ Fetches the configured SARI
+
+        Returns:
+            Configured SARI for the OMM system
+
+        """
         self._ensure_login()
         message, attributes, children = self._sendrequest("GetSARI")
         return attributes.get("sari")
 
-    # Fetches the OMM system name
     def get_systemname(self):
+        """ Fetches the OMM system name
+
+        Returns:
+            The OMMs configured system name.
+        """
         self._ensure_login()
         message, attributes, children = self._sendrequest("GetSystemName")
         return attributes.get("name")
 
-    # Fetches maximum Numbers for RFPs, users ect. Returns a dictionary
     def get_limits(self):
+        """ Fetches maximum Numbers for RFPs, users ect.
+
+        Returns:
+            A dict containing all limitations for the different types.
+        """
         self._ensure_login()
         message, attributes, children = self._sendrequest("Limits")
         return attributes
 
-    # Fetches the OMM supported protocol versions for all calls. Returns a dictionary
     def get_versions(self):
+        """ Fetches the OMM supported protocol versions for all calls.
+
+        Returns:
+            A dict containing protocol versions for all available calls.
+
+        """
         message, attributes, children = self._sendrequest("GetVersions")
         return attributes
 
-    # Set DECT Subscription Mode (Modes are: off, configured, wildcard)
     def set_subscription(self, mode, timeout=None):
+        """ Set DECT Subscription Mode (Modes are: off, configured, wildcard)
+
+        Args:
+            mode (str): one of the following Modes:
+                * off
+                * configured
+                * wildcard
+            timeout (int): The time after that the wildcard mode disables.
+                It is only required if switching to wildcard mode.
+
+        Returns:
+            True: if parameters are ok
+            False: if the parameters are faulty
+
+        """
         modes = {
-            "OFF" : "Off",
-            "WILDCARD" : "Wildcard",
-            "CONFIGURED" : "Configured"
+            "OFF": "Off",
+            "WILDCARD": "Wildcard",
+            "CONFIGURED": "Configured"
         }
         if mode is None or mode.upper() not in modes:
             return False
@@ -143,41 +236,227 @@ class OMMClient(Events):
             return False
         else:
             messagedata["timeout"] = timeout
-        message, attributes, children = self._sendrequest("SetDECTSubscriptionMode", messagedata)
+        self._sendrequest("SetDECTSubscriptionMode", messagedata)
         return True
 
     def set_user_pin(self, uid, pin):
+        """ rest a user profiles PIN
+
+        Resets the PIN a user uses to login his user profile into a DECT device.
+        That can be done by using the defined system feature code, the profiles
+        login and this PIN.
+
+        Args:
+            uid (int): user profile id
+            pin (str): PIN to set
+
+        Returns:
+            True: if successful
+            False: if the request failed
+        """
         messagedata = {
-            "user":{
-                "uid":uid,
-                "pin":encrypt_pin(pin, self._modulus,self._exponent)
+            "user": {
+                "uid": uid,
+                "pin": encrypt_pin(pin, self._modulus, self._exponent)
             }
         }
-        message, attributes, children = self._sendrequest("SetPPUser",{"seq": str(self._get_sequence())}, messagedata)
+        message, attributes, children = self._sendrequest("SetPPUser", {"seq": str(self._get_sequence())}, messagedata)
         if len(children) > 0 and children["user"] is not None:
             return True
         else:
             return False
 
+    def get_device(self,  ppn):
+        """ get device configuration data
 
-    # Pings OMM and awaits response
+        Args:
+            ppn:
+
+        Returns:
+
+        """
+        message, attributes, children = self._sendrequest("GetPPDev", {"seq": self._get_sequence(), "ppn": ppn})
+        if children is not None and "pp" in children and children["pp"] is not None \
+                and children["pp"]["ppn"] == str(ppn):
+            return children["pp"]
+        else:
+            return None
+
+    def get_user(self,  uid):
+        """ get user configuration data
+
+        Obtain the user profiles configuration data like sip-login ect. using the user id.
+
+        Args:
+            uid (int): user profile id
+
+        Returns:
+            Will return the users profile if the request ist successful.
+            If it fails None will be returned.
+        """
+        message, attributes, children = self._sendrequest("GetPPUser", {"seq": self._get_sequence(), "uid": uid})
+        if children is not None and "user" in children and children["user"] is not None \
+                and children["user"]["uid"] == str(uid):
+            return children["user"]
+        else:
+            return None
+
+    def set_user_relation_dynamic(self, uid):
+        """ Convert a fixed device-user relation into a dynamic one
+
+        After converting the relation from fixed to dynamic users are able to
+        logout the profile from a device using the DECT feature code.
+
+        Args:
+            uid (int): user profile id
+
+        Returns:
+            Will return the user profile's attributes if successful
+            False will be returned if the request failed.
+        """
+        messagedata = {
+            "seq": self._get_sequence(),
+            "uid": uid,
+            "relType": "Dynamic"
+        }
+        message, attributes, children = self._sendrequest("SetPPUserDevRelation", messagedata)
+        if attributes is not None:
+            return attributes
+        else:
+            return False
+
+    def set_user_relation_fixed(self, uid):
+        """ Convert a user-device relation into fixed type
+
+        .. note::
+            Prior to this operation the user profile must be bound to a device.
+
+        When a user profile is already logged in (bound) to a device using dynamic
+        relationship this method can be used to fix the binding. After that no
+        login and logout method can be performed using the DECT mechanisms.
+
+        Args:
+            uid (int): user profile id
+
+        Returns:
+            If successful it will return a dict containing all information about the user profile.
+            Will return False if the request didn't succeed properly.
+        """
+        messagedata = {
+            "seq": self._get_sequence(),
+            "uid": uid,
+            "relType": "Fixed"
+        }
+        message, attributes, children = self._sendrequest("SetPPUserDevRelation", messagedata)
+        if attributes is not None:
+            return attributes
+        else:
+            return False
+
+    def detach_user_device(self, uid, ppn):
+        """ detaches an user profile from an existing device
+
+        .. note::
+            You have to obtain the device id also named ppn and the users id named uid.
+
+        Can be used to logout a user profile from a device entry.
+        The user can be logged in to another device after that.
+        The device can be used to login another user.
+
+        Args:
+            uid (int): user profile id
+            ppn (int): registered device id
+
+        Returns:
+            True if the operation was successful. False if it failed.
+        """
+        if (type(uid) is not int or type(ppn) is not int) or (ppn <= 0 or uid <= 0):
+            return False
+        messagedata = {
+            "pp": {
+                "uid": 0,
+                "relType": "Unbound",
+                "ppn": ppn
+            },
+            "user": {
+                "uid": uid,
+                "relType": "Unbound",
+                "ppn": 0
+            }
+        }
+        message, attributes, children = self._sendrequest("SetPP", {"seq": self._get_sequence()}, messagedata)
+        if children is not None and "pp" in children and children["pp"]["uid"] == str(uid):
+            return True
+        else:
+            return False
+
+    def attach_user_device(self, uid, ppn):
+        """ Connects an existing user profile to an existing subscribed device
+
+        Args:
+            uid (int): user profile id
+            ppn (int): registered device id
+
+        Returns:
+            True if the operation was successful. False if it failed.
+        """
+        if (type(uid) is not int or type(ppn) is not int) or (ppn <= 0 or uid <= 0):
+            return False
+        messagedata = {
+            "pp": {
+                "uid": uid,
+                "relType": "Dynamic",
+                "ppn": ppn
+            },
+            "user": {
+                "uid": uid,
+                "relType": "Dynamic",
+                "ppn": ppn
+            }
+        }
+        message, attributes, children = self._sendrequest("SetPP", {"seq": self._get_sequence()}, messagedata)
+        if children is not None and "pp" in children and children["pp"]["uid"] == str(uid):
+            return True
+        else:
+            return False
+
     def ping(self):
+        """ Pings OMM and awaits response
+
+        """
         self._ensure_login()
         self._sendrequest("Ping", {})
 
-    # Deletes a configured PP
     def delete_device(self, ppid):
+        """ Deletes a configured PP
+
+        .. note:: This operation can not be undone!
+
+        Args:
+            ppid (int): device id (ppn)
+        """
         self._ensure_login()
         self._sendrequest("DeletePPDev", {"ppn": str(ppid), "seq": str(self._get_sequence())})
 
-    # Fetches the current state of a PP
     def get_device_state(self, ppid):
+        """ Fetches the current state of a PP
+
+        Args:
+            ppid:
+
+        Returns:
+            A dict containing the devices state information
+
+        """
         self._ensure_login()
         message, attributes, children = self._sendrequest("GetPPState",
                                                           {"ppn": str(ppid), "seq": str(self._get_sequence())})
         return attributes
 
     def _work(self):
+        """
+
+        """
         while not self._terminate:
             if not self._send_q.empty():
                 item = self._send_q.get(block=False)
@@ -187,17 +466,21 @@ class OMMClient(Events):
             data = None
             try:
                 data = self._ssl_socket.recv(16384)
-            except ssl.SSLError, e:
+            except Exception, e:
                 if e.message == "The read operation timed out":
                     continue
             if data:
                 self._recv_q.put(data)
 
     def _dispatch(self):
+        """
+
+        """
         while not self._terminate:
             sleep(0.1)
             if not self._recv_q.empty():
                 item = self._recv_q.get(block=False)
+                #print item
                 message, attributes, children = parse_message(item)
                 if message == "EventDECTSubscriptionMode":
                     self.on_DECTSubscriptionMode(message, attributes, children)
@@ -210,6 +493,9 @@ class OMMClient(Events):
                             self._events[message]["event"].set()
 
     def logout(self):
+        """
+
+        """
         self._logged_in = False
         self._terminate = True
         self._worker.join()
@@ -217,4 +503,7 @@ class OMMClient(Events):
         self._ssl_socket.close()
 
     def __del__(self):
+        """
+
+        """
         self.logout()
