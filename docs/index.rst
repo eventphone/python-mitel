@@ -7,7 +7,7 @@ Welcome to python-mitel's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   ../README
+   ../README.md
    OMMClient.rst
 
 Method and Classes Overview
