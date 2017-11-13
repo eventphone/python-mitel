@@ -13,6 +13,12 @@ protocol over an SSL-socket. The idea behind this Python Module is
 to reverse-engenieer that protocol to be able to script all changes
 inside the OMM.
 
+## Documentation
+[![Documentation Status](https://readthedocs.org/projects/python-mitel/badge/?version=latest)](http://python-mitel.readthedocs.io/en/latest/?badge=latest)
+
+Documentation can be found here:
+http://http://python-mitel.readthedocs.io/.
+
 ## Following features are targeted:
 - Configure subscription mode (Off, Subscription, Wildcard) ✅
 - Handle subscription mode change ✅
