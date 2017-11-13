@@ -1,3 +1,5 @@
 rsa
 events
+sphinx-rtd-theme
+sphinx
 recommonmark

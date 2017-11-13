@@ -2,6 +2,7 @@
 
 import os
 import sys
+from recommonmark.parser import CommonMarkParser
 sys.path.append(os.path.abspath('./..'))
 sys.path.append(os.path.abspath('./../OMMClient'))
 
