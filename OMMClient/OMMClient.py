@@ -436,25 +436,44 @@ class OMMClient(Events):
         Within the example *1 stands for general feature access prefix 4711 is the code for user login.
         And 3333 is the extension for which login is requested. User will be prompted for a PIN.
 
-        :param name(str): Username
-        :param number(str):
-        :param desc1(str):
-        :param desc2(str):
-        :param login(str):
-        :param pin(str):
-        :param sip_user(str):
-        :param sip_password(str):
-        :return: Will return uid when successful. Will return false if it failed.
+        .. note:: If no sip user name and sip password is specified number will be used
+
+        :param name: Name for the user profile (Shown as Name in OMP)
+        :type name: str
+        :param number: number for the user profile (Shown as Number/SIP user name in OMM)
+        :type number: str
+        :param desc1: Description 1 for the new user profile. Can by any string.
+        :type desc1: str
+        :param desc2: Description 2 for the new user profile. Can by any string.
+        :type desc2: str
+        :param login: Login for the use to be used for profile login from DECT or additional ID.
+        :type login: str
+        :param pin: PIN for profile login via DECT. Any non numeric value doesn't make sense.
+        :type pin: str
+        :param sip_user: Username for OMM to register the profile against the configured sip registrar
+        :type sip_user: str
+        :param sip_password(str): Password for sip register against registrar configured
+        :type sip_password: str
+        :rtype: int
+        :return: Will return a dict containing data of the new user object if successful. Will return None if it failed.
         """
-        raise Exception("not implemented")
-        messagedata = {
-            "seq": self._get_sequence(),
+        children = {
+            "user": {
+                "name": name,
+                "num": number
+            }
         }
-        message, attributes, children = self._sendrequest("SetPPUserDevRelation", messagedata)
-        if attributes is not None:
-            return attributes
+        if desc1: children["user"]["hierarchy1"] = desc1
+        if desc2: children["user"]["hierarchy2"] = desc2
+        if login: children["user"]["addId"] = login
+        if pin: children["user"]["pin"] = encrypt_pin(pin, self._modulus, self._exponent)
+        if sip_user: children["user"]["sipAuthId"] = sip_user
+        if sip_password: children["user"]["sipPw"] = encrypt_pin(sip_password, self._modulus, self._exponent)
+        message, attributes, children = self._sendrequest("CreatePPUser", {"seq": self._get_sequence()}, children)
+        if children is not None and "user" in children:
+            return children["user"]
         else:
-            return False
+            return None
 
     def delete_device(self, ppid):
         """ Delete a configured handset (pp)
