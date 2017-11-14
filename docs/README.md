@@ -19,6 +19,13 @@ inside the OMM.
 Documentation can be found here:
 http://http://python-mitel.readthedocs.io/.
 
+## References
+After engineering the api interface between OMP and OMM google
+came up with a vendor api documentation which can be found here:
+
+[SIP-DECT OM Application XML Interface OMM V 6.1](www.mitel.com/sites/default/files/aad-0384_OM_AXI_OM_Rel_6.1_0.pdf)
+
+
 ## Following features are targeted:
 - Configure subscription mode (Off, Subscription, Wildcard) ✅
 - Handle subscription mode change ✅
