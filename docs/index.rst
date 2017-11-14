@@ -10,7 +10,7 @@ Welcome to python-mitel's documentation!
    README
    OMMClient.rst
 
-Method and Classes Overview
+Methods and classes overview
 ===========================
 You find an Index of all Methods and Classes here:
 :ref:`genindex`
