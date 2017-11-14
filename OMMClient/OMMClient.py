@@ -427,6 +427,35 @@ class OMMClient(Events):
         self._ensure_login()
         self._sendrequest("Ping", {})
 
+    def create_user(self, name, number, desc1=None, desc2=None, login=None, pin="", sip_user=None, sip_password=None):
+        """ Creates new user
+
+        This function will create a new user profile without a device relation ship in dynamic mode.
+        It can be used to loing from a device using the feature access code with login and PIN specified.
+        The Feature access code can be configured using OMM. Could be someting like (*1)(4711)(3333).
+        Within the example *1 stands for general feature access prefix 4711 is the code for user login.
+        And 3333 is the extension for which login is requested. User will be prompted for a PIN.
+
+        :param name: Username
+        :param number:
+        :param desc1:
+        :param desc2:
+        :param login:
+        :param pin:
+        :param sip_user:
+        :param sip_password:
+        :return: Will return uid when successful. Will return false if it failed.
+        """
+        raise Exception("not implemented")
+        messagedata = {
+            "seq": self._get_sequence(),
+        }
+        message, attributes, children = self._sendrequest("SetPPUserDevRelation", messagedata)
+        if attributes is not None:
+            return attributes
+        else:
+            return False
+
     def delete_device(self, ppid):
         """ Deletes a configured PP
 
@@ -454,9 +483,6 @@ class OMMClient(Events):
         return attributes
 
     def _work(self):
-        """
-
-        """
         while not self._terminate:
             if not self._send_q.empty():
                 item = self._send_q.get(block=False)
@@ -473,9 +499,6 @@ class OMMClient(Events):
                 self._recv_q.put(data)
 
     def _dispatch(self):
-        """
-
-        """
         while not self._terminate:
             sleep(0.1)
             if not self._recv_q.empty():
@@ -493,7 +516,10 @@ class OMMClient(Events):
                             self._events[message]["event"].set()
 
     def logout(self):
-        """
+        """ Logout from OMM
+
+        Calling this method will log you out and close the underlying tcp/ssl socket.
+        Login can be called any time to reuse the client object for further calls.
 
         """
         self._logged_in = False
@@ -503,7 +529,4 @@ class OMMClient(Events):
         self._ssl_socket.close()
 
     def __del__(self):
-        """
-
-        """
         self.logout()
