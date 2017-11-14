@@ -1,3 +1,3 @@
 README-File
 ============
-.. include:: ../README.md
+.. include:: ../README

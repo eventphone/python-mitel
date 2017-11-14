@@ -454,7 +454,7 @@ class OMMClient(Events):
         :type sip_user: str
         :param sip_password(str): Password for sip register against registrar configured
         :type sip_password: str
-        :rtype: int
+        :rtype: dict
         :return: Will return a dict containing data of the new user object if successful. Will return None if it failed.
         """
         children = {

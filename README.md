@@ -22,7 +22,7 @@ http://http://python-mitel.readthedocs.io/.
 ## Following features are targeted:
 - Configure subscription mode (Off, Subscription, Wildcard) ✅
 - Handle subscription mode change ✅
-- Create new user profiles
+- Create new user profiles ✅
 - Create new devices (PPs) using known IPEI/IPUI
 - Attach existing profiles to devices ✅
 - Detach a user profile from a device ✅
@@ -46,6 +46,7 @@ http://http://python-mitel.readthedocs.io/.
 - Login Default and Login as OMM-Sync
 
 ### Users (User Profiles)
+- Create new user profile
 - Get User by ID
 - Reset User-PIN
 - Attach User to Device
