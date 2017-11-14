@@ -436,14 +436,14 @@ class OMMClient(Events):
         Within the example *1 stands for general feature access prefix 4711 is the code for user login.
         And 3333 is the extension for which login is requested. User will be prompted for a PIN.
 
-        :param name: Username
-        :param number:
-        :param desc1:
-        :param desc2:
-        :param login:
-        :param pin:
-        :param sip_user:
-        :param sip_password:
+        :param name(str): Username
+        :param number(str):
+        :param desc1(str):
+        :param desc2(str):
+        :param login(str):
+        :param pin(str):
+        :param sip_user(str):
+        :param sip_password(str):
         :return: Will return uid when successful. Will return false if it failed.
         """
         raise Exception("not implemented")
@@ -457,12 +457,12 @@ class OMMClient(Events):
             return False
 
     def delete_device(self, ppid):
-        """ Deletes a configured PP
+        """ Delete a configured handset (pp)
 
         .. note:: This operation can not be undone!
 
-        Args:
-            ppid (int): device id (ppn)
+        :param ppid(int): id of the PP to be deleted (>0)
+        :return: None
         """
         self._ensure_login()
         self._sendrequest("DeletePPDev", {"ppn": str(ppid), "seq": str(self._get_sequence())})
@@ -471,10 +471,10 @@ class OMMClient(Events):
         """ Fetches the current state of a PP
 
         Args:
-            ppid:
+            :param ppid(int): id of the PP to get the current state for
 
         Returns:
-            A dict containing the devices state information
+            :return: A dict containing the devices state information
 
         """
         self._ensure_login()
