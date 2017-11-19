@@ -17,6 +17,22 @@ OMMClient\.OMMClient module
     :undoc-members:
     :show-inheritance:
 
+OMMClient\.OMMDevice module
+---------------------------
+
+.. automodule:: OMMClient.OMMDevice
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+OMMClient\.OMMUser module
+---------------------------
+
+.. automodule:: OMMClient.OMMUser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 OMMClient\.messagehelper module
 -------------------------------
 
