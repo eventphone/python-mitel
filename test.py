@@ -15,21 +15,19 @@ def HandsetHandler(message, attributes, children):
 
 test = OMMClient.OMMClient(host, port)
 test.login(user, password, ommsync=True)
-#for i in range(1,2500):
-#    name = "test" + str(i)
-#    number = str(i)
-#    test.create_user(name,number)
-#test.logout()
-#exit(0)
-#test.attach_user_device(1, 33)
-#test.detach_user_device(1, 33)
+#print test.get_device(32)
+#print test.create_user("test1","3332",login="3332",pin="1234")
+user = test.get_user(1)
+user.update()
+print user.name
+print user.pin
+#test.attach_user_device(1, 36)
+#test.detach_user_device(5, 35)
 
 test.on_DECTSubscriptionMode += SubscriptionHandler
 test.on_PPDevCnf += HandsetHandler
 print("SARI: "+test.get_sari())
 print("OMM: "+test.get_systemname())
-print(test.get_limits())
-print(test.set_subscription("Off"))
 #print(test.set_user_pin(55,"1234"))
 test.get_device_state(12)
 i=0

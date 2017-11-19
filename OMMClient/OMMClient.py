@@ -1,4 +1,5 @@
 from threading import Thread, Event, Lock
+from OMUser import OMMUser
 from time import sleep
 from events import Events
 from utils import *
@@ -297,7 +298,8 @@ class OMMClient(Events):
         message, attributes, children = self._sendrequest("GetPPUser", {"seq": self._get_sequence(), "uid": uid})
         if children is not None and "user" in children and children["user"] is not None \
                 and children["user"]["uid"] == str(uid):
-            return children["user"]
+            user = OMMUser(self, children["user"])
+            return user
         else:
             return None
 
@@ -452,7 +454,7 @@ class OMMClient(Events):
         :type pin: str
         :param sip_user: Username for OMM to register the profile against the configured sip registrar
         :type sip_user: str
-        :param sip_password(str): Password for sip register against registrar configured
+        :param sip_password: Password for sip register against registrar configured
         :type sip_password: str
         :rtype: dict
         :return: Will return a dict containing data of the new user object if successful. Will return None if it failed.
@@ -463,12 +465,18 @@ class OMMClient(Events):
                 "num": number
             }
         }
-        if desc1: children["user"]["hierarchy1"] = desc1
-        if desc2: children["user"]["hierarchy2"] = desc2
-        if login: children["user"]["addId"] = login
-        if pin: children["user"]["pin"] = encrypt_pin(pin, self._modulus, self._exponent)
-        if sip_user: children["user"]["sipAuthId"] = sip_user
-        if sip_password: children["user"]["sipPw"] = encrypt_pin(sip_password, self._modulus, self._exponent)
+        if desc1:
+            children["user"]["hierarchy1"] = desc1
+        if desc2:
+            children["user"]["hierarchy2"] = desc2
+        if login:
+            children["user"]["addId"] = login
+        if pin:
+            children["user"]["pin"] = encrypt_pin(pin, self._modulus, self._exponent)
+        if sip_user:
+            children["user"]["sipAuthId"] = sip_user
+        if sip_password:
+            children["user"]["sipPw"] = encrypt_pin(sip_password, self._modulus, self._exponent)
         message, attributes, children = self._sendrequest("CreatePPUser", {"seq": self._get_sequence()}, children)
         if children is not None and "user" in children:
             return children["user"]
@@ -480,7 +488,8 @@ class OMMClient(Events):
 
         .. note:: This operation can not be undone!
 
-        :param ppid(int): id of the PP to be deleted (>0)
+        :param ppid: id of the PP to be deleted (>0)
+        :type ppid: int
         :return: None
         """
         self._ensure_login()
@@ -490,7 +499,8 @@ class OMMClient(Events):
         """ Fetches the current state of a PP
 
         Args:
-            :param ppid(int): id of the PP to get the current state for
+            :param ppid: id of the PP to get the current state for
+            :type ppid: int
 
         Returns:
             :return: A dict containing the devices state information
@@ -510,7 +520,7 @@ class OMMClient(Events):
             self._ssl_socket.settimeout(0.1)
             data = None
             try:
-                data = self._ssl_socket.recv(16384)
+                data = self._ssl_socket.recv(65536)
             except Exception, e:
                 if e.message == "The read operation timed out":
                     continue
@@ -522,7 +532,6 @@ class OMMClient(Events):
             sleep(0.1)
             if not self._recv_q.empty():
                 item = self._recv_q.get(block=False)
-                #print item
                 message, attributes, children = parse_message(item)
                 if message == "EventDECTSubscriptionMode":
                     self.on_DECTSubscriptionMode(message, attributes, children)
