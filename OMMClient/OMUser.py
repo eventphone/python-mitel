@@ -1,10 +1,20 @@
 from OMMClient import *
 from threading import Lock
 
+
 class OMMUser:
     """
     :type _ommclient: OMMClient
     :param _ommclient: OMM Client
+    :type uid: int
+    :param uid: OMM's internal user id
+    :type ppn: int
+    :param name: user name
+    :type name: str
+    :param useSIPUserName: login user to register user to sip registrar
+    :type useSIPUserName: str
+    :param ppnOld: last device id assigned
+    :type ppnOld: int
     """
     msgRight = None
     uid = None

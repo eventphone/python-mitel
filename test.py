@@ -15,12 +15,8 @@ def HandsetHandler(message, attributes, children):
 
 test = OMMClient.OMMClient(host, port)
 test.login(user, password, ommsync=True)
-#print test.get_device(32)
+print test.get_device(35)
 #print test.create_user("test1","3332",login="3332",pin="1234")
-user = test.get_user(1)
-user.update()
-print user.name
-print user.pin
 #test.attach_user_device(1, 36)
 #test.detach_user_device(5, 35)
 

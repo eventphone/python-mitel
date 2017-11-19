@@ -1,5 +1,6 @@
 from threading import Thread, Event, Lock
 from OMUser import OMMUser
+from OMDevice import OMMDevice
 from time import sleep
 from events import Events
 from utils import *
@@ -271,15 +272,19 @@ class OMMClient(Events):
         """ get device configuration data
 
         Args:
-            ppn:
+            :param ppn: device id inside OMM
+            :type ppn: int
 
         Returns:
+            :rtype: OMMDevice
+            :returns: Device object if successful None if not
 
         """
         message, attributes, children = self._sendrequest("GetPPDev", {"seq": self._get_sequence(), "ppn": ppn})
         if children is not None and "pp" in children and children["pp"] is not None \
                 and children["pp"]["ppn"] == str(ppn):
-            return children["pp"]
+            device = OMMDevice(self, children["pp"])
+            return device
         else:
             return None
 
@@ -495,12 +500,12 @@ class OMMClient(Events):
         self._ensure_login()
         self._sendrequest("DeletePPDev", {"ppn": str(ppid), "seq": str(self._get_sequence())})
 
-    def get_device_state(self, ppid):
+    def get_device_state(self, ppn):
         """ Fetches the current state of a PP
 
         Args:
-            :param ppid: id of the PP to get the current state for
-            :type ppid: int
+            :param ppn: id of the PP to get the current state for
+            :type ppn: int
 
         Returns:
             :return: A dict containing the devices state information
@@ -508,8 +513,13 @@ class OMMClient(Events):
         """
         self._ensure_login()
         message, attributes, children = self._sendrequest("GetPPState",
-                                                          {"ppn": str(ppid), "seq": str(self._get_sequence())})
-        return attributes
+                                                          {"ppn": str(ppn), "seq": str(self._get_sequence())})
+        if children is not None and "pp" in children and children["pp"] is not None \
+                and children["pp"]["ppn"] == str(ppn):
+            device = OMMDevice(self, children["pp"])
+            return device
+        else:
+            return None
 
     def _work(self):
         while not self._terminate:
