@@ -2,6 +2,8 @@
 
 ## Overview and Purpose
 
+This library has been replaced by https://github.com/eventphone/mitel-api and is no longer actively maintained.
+
 The Mitel SIP-DECT solution is a scalable IP-based multicell
 DECT-System. Multiple DECT basestations (RFPs) can be used to extend
 coverage. Up to 10.000 handsets (PPs) can be registered to use the
