@@ -2,8 +2,6 @@
 
 ## Overview and Purpose
 
-This library has been replaced by https://github.com/eventphone/mitel-api and is no longer actively maintained.
-
 The Mitel SIP-DECT solution is a scalable IP-based multicell
 DECT-System. Multiple DECT basestations (RFPs) can be used to extend
 coverage. Up to 10.000 handsets (PPs) can be registered to use the
@@ -14,6 +12,8 @@ client application called OMP connects to OMM using a custom xml-based
 protocol over an SSL-socket. The idea behind this Python Module is
 to reverse-engenieer that protocol to be able to script all changes
 inside the OMM.
+
+This library has been replaced by https://github.com/eventphone/mitel-api and is no longer actively maintained.
 
 ## Documentation
 [![Documentation Status](https://readthedocs.org/projects/python-mitel/badge/?version=latest)](http://python-mitel.readthedocs.io/en/latest/?badge=latest)
