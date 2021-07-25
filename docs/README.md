@@ -25,7 +25,7 @@ http://python-mitel.readthedocs.io/.
 After reverse engineering the api interface between OMP and OMM google
 came up with a vendor api documentation which can be found here:
 
-[SIP-DECT OM Application XML Interface OMM V 6.1](https://mitel.de/sites/default/files/aad-0384_OM_AXI_OM_Rel_6.1_1.pdf)
+[SIP-DECT OM Application XML Interface OMM V 6.1](http://www.voipinfo.net/docs/mitel/aad-0384_OM_AXI_OM_Rel_6.1.pdf)
 
 
 ## Following features are targeted:
